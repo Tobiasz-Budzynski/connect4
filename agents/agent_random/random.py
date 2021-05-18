@@ -1,15 +1,13 @@
 import numpy as np
+from typing import Optional, Tuple
+from agents.common import lowest_free, BoardPiece, PlayerAction, SavedState
 import timeit  # time checking
 #import cProfile  # for profiling executing di
 #from numba import njit  # compiler optimizing loops, decorater.
 
-from typing import Optional, Tuple
-from agents.common import lowest_free, BoardPiece, PlayerAction, SavedState
-
-
-class SavedState:
-    def __init__(self, computational_result):
-        self.computational_result = computational_result
+#class SavedState:
+#    def __init__(self, computational_result):
+#        self.computational_result = computational_result
 
 
 def generate_move_random(
@@ -23,7 +21,4 @@ def generate_move_random(
         low_frees[i] = lowest_free(board, i)
     columns_free = np.argwhere(low_frees < board.shape[0] + 1).reshape(-1)
     action = np.random.choice(columns_free).astype(PlayerAction)
-    print(columns_free)
-    saved_state = None
-
     return action, saved_state

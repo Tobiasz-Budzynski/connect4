@@ -1,21 +1,18 @@
-import pdb
-import timeit
-
 import numpy as np
 from typing import Optional, Callable
-from agents.common import PlayerAction, BoardPiece, SavedState, GenMove, lowest_free
+from agents.common import PlayerAction, BoardPiece, GenMove, lowest_free, SavedState
 from agents.agent_random import generate_move
 
 
 def user_move(board: np.ndarray, _player: BoardPiece,
               saved_state: Optional[SavedState]):
-    '''
+    """
     Takes board and current player. Checks if the column is not out of bound
     Returns players action, which is an integer of PlayerAction type.
-    '''
+    """
     action = PlayerAction(-1)
 
-# TODO: make it a proper looping. Now it gives IndexError if no free space in a column.
+# maydo: make a looping. Now it gives IndexError if no free space in a column.
 
     while not 0 <= action < board.shape[1]:
         try:
@@ -28,7 +25,7 @@ def user_move(board: np.ndarray, _player: BoardPiece,
                     print("There is no more free space in the column.")
 
         except ValueError:
-            print("Input could not be converted to the dtype PlayerAction,"
+            print("Input could not be converted to the data type PlayerAction,"
                   " try entering an integer.")
         return action, saved_state
 
@@ -79,7 +76,6 @@ def human_vs_agent(
                     if end_state == GameState.IS_DRAW:
                         print("Game ended in draw")
                     else:
-                        #pdb.set_trace()
                         print(
                             f'{player_name} won playing {PLAYER1_PRINT if player == PLAYER1 else PLAYER2_PRINT}'
                         )

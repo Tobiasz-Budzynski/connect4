@@ -1,9 +1,27 @@
 import numpy as np
-from typing import Optional
-from ..common import BoardPiece, PlayerAction
+from typing import Optional, Tuple
+from agents.common import BoardPiece, PlayerAction, GameState, lowest_free, check_end_state, SavedState
 
 
-# SavedState should be a class, dictionary, array or list?
+# Future, hypothetical boards
+def level_search(
+    board: np.ndarray, player: BoardPiece, state: Optional[SavedState]
+    ) -> Tuple[PlayerAction, Optional[SavedState]]:
+    depth = state[0]
+    heuristic = state[1]
+    hp_board = np.copy(board)
+    for hp_action in np.ndarray([3, 4, 2, 5, 1, 6, 0]).astype(np.int8):
+        # maydo: chose the column with gaussian-like distribution centered at three
+        hp_board[lowest_free(hp_board, hp_action), hp_action] = player
+        if check_end_state(hp_board, player) == GameState.IS_WIN:
+            return (hp_action, heuristic+1)
+        else:
+            opponent = (player % 2) + 1
+            if check_end_state(hp_board, opponent) == GameState.IS_WIN:
+                heuristic = -257
+            level_search(hp_board, opponent, (depth-1, heuristic/49))
+    return None, None
+
 
 def generate_move_minimax(
     board: np.ndarray, player: BoardPiece, state: Optional[SavedState]

@@ -1,5 +1,3 @@
-import pdb
-
 import numpy as np
 from enum import Enum
 from typing import Optional
@@ -61,7 +59,6 @@ def pretty_print_board(board: np.ndarray) -> str:
     |==============|
     |0 1 2 3 4 5 6 |
     """
-    # TODO: implement PLAYER1_PRINT and the other 2 variables.
     minus_board = np.flip(board, axis=0)
     pp_board = ''
 
@@ -83,7 +80,7 @@ def string_to_board(pp_board: str) -> np.ndarray:
     This is quite useful for debugging, when the agent crashed and you have the last
     board state as a string.
     """
-    # maydo: replace '0', '1,... with class player value
+    # maydo: replace '0', '1',... with class player value
     mapping_inverse = np.array([('0', NO_PLAYER_PRINT), ('1', PLAYER1_PRINT), ('2', PLAYER2_PRINT)], str)
     mapping_inverse[:, [0, 1]] = mapping_inverse[:, [1, 0]]
 
@@ -93,7 +90,6 @@ def string_to_board(pp_board: str) -> np.ndarray:
 
     surged_str = still_a_str.split('\n')[1:7]  # check
     surged_string_array = np.zeros((6, 7), dtype=str)
-    print(surged_string_array.shape)
     for i in range(GameDimensions.HEIGHT.value):
         row = list(surged_str[i])[::2]
         surged_string_array[i, :] = np.array(row)
@@ -116,7 +112,7 @@ def lowest_free(board: np.ndarray, action: PlayerAction) -> int:
 
 def apply_player_action(
         board: np.ndarray, action: PlayerAction,
-        player: BoardPiece, copy: bool=False
+        player: BoardPiece, copy: bool = False
 ) -> np.ndarray:
     """
     Sets board[i, action] = player, where i is the lowest open row. The modified
@@ -127,8 +123,9 @@ def apply_player_action(
         copy_of_the_board[lowest_free(board, action), action] = player
         return copy_of_the_board
     else:
-        board[np.nonzero(board[:, action])[0].shape[0], action] = player
-    return board
+        i = lowest_free(board, action)
+        board[i, action] = player
+        return board
 
 
 def check_end_state(
@@ -152,8 +149,8 @@ def check_end_state(
         if player == PLAYER1:
             board_player1 = np.where(board == 1, board, 0)
             checking1 = np.round(fftconvolve(board_player1, four1, "valid"))
-            win_Player1 = (checking1 == 4).any()
-            if win_Player1:
+            win_player1 = (checking1 == 4).any()
+            if win_player1:
                 game_state = GameState.IS_WIN
         if player == PLAYER2:
             checking2 = np.round(fftconvolve(board, four1, "valid"))
