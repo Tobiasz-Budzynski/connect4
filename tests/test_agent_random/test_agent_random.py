@@ -18,6 +18,6 @@ def test_generate_move():
     action = generate_move(board, player, None)[0]
     print(timeit.timeit(stmt="while n<1000: x=x+'A'; n+=1", setup='n=0; x=""', number=1000))
     board = apply_player_action(board, action, player)
-    assert type(generate_move) == GenMove
-    assert isinstance(generate_move, GenMove)
+    assert generate_move == GenMove
+  #  assert isinstance(generate_move, GenMove)
 

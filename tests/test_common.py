@@ -76,6 +76,18 @@ def test_prepare_board_for_testing():
     assert board.shape == (6, 7)
 
 
+def test_lowest_free():
+    from agents.common import lowest_free, initialize_game_state
+
+    board1 = initialize_game_state()
+    board1[0,3] = BoardPiece(1)
+    column1 = np.int8(3)
+    index = np.array([lowest_free(board1, column1), column1])
+    for i in (0, 1):
+        assert 0 <= index[i] < board1.shape[i]
+    assert board1[index[0], index[1]] == NO_PLAYER
+
+
 def test_apply_player_action():
     from agents.common import apply_player_action
     from agents.common import pretty_print_board
@@ -95,10 +107,35 @@ def test_apply_player_action():
     assert (post_board == board0 + change).all()
 
 
+def test_connect():
+    from agents.common import connect, pretty_print_board, PLAYER1_PRINT, PLAYER2_PRINT
+    for i in range(10):
+        board, low_free = prepare_board_for_testing(full=True)
+        player = BoardPiece(np.random.randint(1,3))
+        print(pretty_print_board(board))
+        connect4 = connect(board, player)
+        if player == 1: symbol = PLAYER1_PRINT
+        else: symbol = PLAYER2_PRINT
+        print("Connected 4 ", symbol," is ", connect4)
+    rate = np.zeros((4,))
+    for i in range(1000):
+        board, low_free = prepare_board_for_testing(full=True)
+        wunth = connect(board, BoardPiece(1))
+        twoth = connect(board, BoardPiece(2))
+        if wunth and twoth: rate[-1] += 1
+        elif wunth: rate[1] += 1
+        elif twoth: rate[2] += 1
+        else: rate[0] += 1
+    rate *= 1 / 1000
+    rate = np.round(rate, 4)
+    print("rate_draw, rate_1, rate_2, rate_1_2 are ", *rate)
+    assert type(connect4) == np.bool_
+
+
 def test_check_end_state():
     from agents.common import check_end_state
 
-    for i in range(70017):
+    for i in range(1017):
         board, low_frees = prepare_board_for_testing()
         player = BoardPiece(rng.integers(low=1, high=3))
   # maydo: implementing last action parameter
@@ -106,17 +143,6 @@ def test_check_end_state():
         assert isinstance(now_game, Enum)
         assert now_game in GameState.__dict__.values()
 
-
-def test_lowest_free():
-    from agents.common import lowest_free, initialize_game_state
-
-    board1 = initialize_game_state()
-    board1[0,3] = BoardPiece(1)
-    column1 = 3
-    index = np.array([lowest_free(board1, column1), column1])
-    for i in (0, 1):
-        assert 0 <= index[i] < board1.shape[i]
-    assert board1[index[0], index[1]] == NO_PLAYER
 
 
 

@@ -128,6 +128,24 @@ def apply_player_action(
         return board
 
 
+def connect(board: np.ndarray, player: BoardPiece, n=4) -> bool:
+    # winning kernels:
+    four = np.ones((1, n))
+    four_connected = [four, four.T, np.diag(four.flatten()), np.fliplr(np.diag(four.reshape(4)))]
+
+    # convolution of four1 and the board will reveal connectedness
+    if player == PLAYER1:
+        for four1 in four_connected:
+            board_player1 = np.where(board == 1, board, 0)  # exclude summing board pieces twos
+            convolution = np.round(fftconvolve(board_player1, four1, "valid"))
+            connect_n = (convolution == n).any()
+    if player == PLAYER2:
+        for four1 in four_connected:
+            convolution = np.round(fftconvolve(board, four1, "valid"))
+            connect_n = (convolution == 2*n).any()
+    return connect_n
+
+
 def check_end_state(
         board: np.ndarray, player: BoardPiece,
         last_action: Optional[PlayerAction] = None
@@ -138,30 +156,12 @@ def check_end_state(
     or is play still on-going (GameState.STILL_PLAYING)?
     """
 
-    # winning kernels:
-    four = np.ones((1, 4))
-    four_connected = [four, four.T, np.diag(four.flatten()), np.fliplr(np.diag(four.reshape(4)))]
-
     game_state = GameState.STILL_PLAYING
 
-    # convolution of four1 and the board (rectified) will reveal the win
-    for four1 in four_connected:
-        if player == PLAYER1:
-            board_player1 = np.where(board == 1, board, 0)
-            checking1 = np.round(fftconvolve(board_player1, four1, "valid"))
-            win_player1 = (checking1 == 4).any()
-            if win_player1:
-                game_state = GameState.IS_WIN
-        if player == PLAYER2:
-            checking2 = np.round(fftconvolve(board, four1, "valid"))
-            win_Player2 = (checking2 == 8).any()
-            if win_Player2:
-                game_state = GameState.IS_WIN
-        if (board != 0).all() and game_state != GameState.IS_WIN:
-            game_state = GameState.IS_DRAW
-        else:
-            if game_state != GameState.IS_WIN:
-                game_state = GameState.STILL_PLAYING
+    if connect(board, player):
+            game_state = GameState.IS_WIN
+    elif (board != 0).all():
+        game_state = GameState.IS_DRAW
     return game_state
 
 

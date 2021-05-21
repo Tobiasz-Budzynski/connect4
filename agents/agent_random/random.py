@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Optional, Tuple
 from agents.common import lowest_free, BoardPiece, PlayerAction, SavedState
+
 import timeit  # time checking
 #import cProfile  # for profiling executing di
 #from numba import njit  # compiler optimizing loops, decorater.
@@ -17,8 +18,8 @@ def generate_move_random(
     Choose a valid, non-full column randomly and return it as `action`.
     """
     low_frees = np.zeros(board.shape[1])
-    for i in range(board.shape[1]):
-        low_frees[i] = lowest_free(board, i)
-    columns_free = np.argwhere(low_frees < board.shape[0] + 1).reshape(-1)
+    for j in range(board.shape[1]):
+        low_frees[j] = lowest_free(board, j)
+    columns_free = np.argwhere(low_frees < board.shape[0]).reshape(-1)
     action = np.random.choice(columns_free).astype(PlayerAction)
     return action, saved_state
