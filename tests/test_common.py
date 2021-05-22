@@ -142,14 +142,3 @@ def test_check_end_state():
         now_game = check_end_state(board, player)
         assert isinstance(now_game, Enum)
         assert now_game in GameState.__dict__.values()
-
-
-
-
-
-
-
-
-
-
-

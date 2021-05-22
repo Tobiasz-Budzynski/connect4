@@ -6,7 +6,12 @@ from scipy.signal import fftconvolve
 
 
 class SavedState:
-    pass
+    def __init__(self, depth_1, count_depth_1, heuristic_for_action_1, story_1):
+        self.depth = depth_1
+        self.heuristic_for_action = heuristic_for_action_1
+        self.max_heuristic_for_action = story_1
+        self.count_depth = count_depth_1
+
 
 
 BoardPiece = np.int8  # The data type of the board
@@ -103,7 +108,7 @@ def string_to_board(pp_board: str) -> np.ndarray:
 def lowest_free(board: np.ndarray, action: PlayerAction) -> int:
     """
     Given a board and an index of a column,
-     it returns the 2d index, the lowest row free to occupy in that column.
+     it returns an integer, which is the index of the lowest row free to occupy in that column.
     """
     column = board[:, action]
     nonzero = np.nonzero(column)

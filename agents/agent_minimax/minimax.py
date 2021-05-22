@@ -1,66 +1,64 @@
 import numpy as np
 from typing import Optional, Tuple
-from agents.common import BoardPiece, PlayerAction, GameState, SavedState, lowest_free, check_end_state, connect
+from agents.common import BoardPiece, PlayerAction, SavedState, lowest_free, connect
 
-class SavedMM(SavedState):
-    def __init__(self, depth_1, heuristic_1, story_1):
-        self.depth = depth_1
-        self.heuristic = heuristic_1
-        self.story = story_1
-# Future, hypothetical boards
 
-def level_search(
-    board: np.ndarray, player: BoardPiece, state: Optional[SavedState]
-    ) -> Tuple[PlayerAction, Optional[SavedState]]:
+def generate_move_minimax(
+        board: np.ndarray, player: BoardPiece, state: Optional[SavedState]
+        ) -> Tuple[PlayerAction, Optional[SavedState]]:
     """
     The function checks if action leads to win, if Yes it returns it,
-    if No it avoids opponents wins. For each opponent response a heuristic is calculated.
+    if No it avoids opponents wins. For each opponent response a heuristic[0] is calculated.
     It increments, when there is a win opportunity for the player.
-    At the end of the function heuristic is normalized according to depth,
-    to have values from 0 to 1 (sth like a likelyhood of winning),
-    unless heuristic is -infty, which means that opponent can force a win.
+    At the end of the function heuristic[0] is normalized according to depth,
+    to have values from 0 to 1 (sth like a likely-hood of winning),
+    unless heuristic[0] is -infinity, which means that opponent can force a win.
+    Heuristic[1] is just an action considered by the player.
     """
-    depth = state.depth
-    heuristic = state.heuristic
-    story = state.story
-    heuristic_norm = 7**depth
+    if state is None:
+        state = SavedState(2, 0, [0, None], [0, None])  # depth, count_depth,
+    depth = state.depth - state.count_depth
+    heuristic = state.heuristic_for_action[0]
     opponent = (player % 2) + 1
     hp_board = np.copy(board)  # abbreviation of hypothetical
     for hp_action in np.ndarray([3, 4, 2, 5, 1, 6, 0]).astype(np.int8):
         # maydo: chose the column with an order deterministic pseudo-gaussian-like centered at three.
         # ...and change the order after each game.
         hp_board[lowest_free(hp_board, hp_action), hp_action] = player
+        if state.count_depth == 0:
+            state.heuristic_for_action[1] = hp_action
+            # save a current hp_action considered and pair it with heuristic
         if connect(hp_board, player, n=4):
-            if depth == state[0]:
-                return hp_action, heuristic+7**depth
+            if depth == state.depth:
+                state.heuristic_for_action[0] = 1  # here it is already normalized
+                state.count = state.depth
+                return state.heuristic_for_action[1], state
             else:
                 heuristic += 7**depth
         else:
+            hp_reaction = None
             for hp_reaction in np.ndarray([3, 4, 2, 5, 1, 6, 0]).astype(np.int8):
                 hp_board[lowest_free(hp_board, hp_reaction), hp_reaction] = player
                 if connect(hp_board, opponent):
-                    heuristic = -np.infty
-                    return hp_reaction, heuristic
-                else:
-                    level_search(hp_board, opponent, (depth-1, heuristic))
-    return
+                    break
+                    # when opponent wins in this move, abort the action You considered
+                    # implement alpha beta pruning
 
-
-def generate_move_minimax(
-    board: np.ndarray, player: BoardPiece, state: Optional[SavedState]
-    ) -> Tuple[PlayerAction, Optional[SavedState]]:
-    """
-    For each action we consider all moves of opponent and choose
-    - subtract ones that give an option of immediate win to the opponent, say "k" of them.
-    - subtract ones that give a win option to the opponent in two moves, i.e.
-    (1) 7 moves for me, 7 for the opponent
-
-    (1) 7-k1 moves for me, 7 for the opponent,
-    (2) 7 for me, and 7 for the opponent.
-
-    (1) 7-k1 moves for me, 7 for the opponent,
-    (2) for each 49 - 7k1 boards calculate
-    7-k2 for me, and 7 for the opponent.
-    Save the (2) part for the next round.
-    for boards taken after two rounds make convolution only on the upper rows (use "lowest free" funciton)
-    """
+            if state.count_depth != state.depth:
+                state.count_depth += 1
+                generate_move_minimax(hp_board, opponent, state)
+            else:
+                heuristic_norm = 7 ** (state.depth+1)
+                new_heuristic = heuristic / heuristic_norm
+                if new_heuristic > state.heuristic_for_action[0]:
+                    # saving heuristic we normalize it
+                    state.max_heuristic_for_action = [state.heuristic_for_action[0]/heuristic_norm,
+                                                      state.heuristic_for_action[1]]
+                    # prepare for checking other options
+                    state.heuristic_for_action[0] = [0, None]
+                    # end of checking
+                if hp_reaction == 0:
+                    return state.max_heuristic_for_action[1], state
+    # if You got here, it's a lost game
+    from agents.agent_random import generate_move
+    return generate_move(board, player, None)
