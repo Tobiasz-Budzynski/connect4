@@ -6,12 +6,12 @@ from scipy.signal import fftconvolve
 
 
 class SavedState:
-    def __init__(self, depth_1, count_depth_1, heuristic_for_action_1, story_1):
+    def __init__(self, depth_1, count_depth_1, heuristic_for_action_1, story_1, board_6):
         self.depth = depth_1
         self.heuristic_for_action = heuristic_for_action_1
         self.max_heuristic_for_action = story_1
         self.count_depth = count_depth_1
-
+        self.board_5 = board_6
 
 
 BoardPiece = np.int8  # The data type of the board
@@ -99,7 +99,6 @@ def string_to_board(pp_board: str) -> np.ndarray:
         row = list(surged_str[i])[::2]
         surged_string_array[i, :] = np.array(row)
 
-    reboard = initialize_game_state()
     reboard = surged_string_array.astype(BoardPiece)
     reboard = np.flip(reboard, axis=0)
     return reboard
@@ -116,7 +115,7 @@ def lowest_free(board: np.ndarray, action: PlayerAction) -> int:
 
 
 def apply_player_action(
-        board: np.ndarray, action: PlayerAction,
+        board_1: np.ndarray, action: PlayerAction,
         player: BoardPiece, copy: bool = False
 ) -> np.ndarray:
     """
@@ -124,35 +123,40 @@ def apply_player_action(
     board is returned. If copy is True, makes a copy of the board before modifying it.
     """
     if copy is True:
-        copy_of_the_board = board.copy()
-        copy_of_the_board[lowest_free(board, action), action] = player
+        copy_of_the_board = np.copy(board_1)
+        copy_of_the_board[lowest_free(board_1, action), action] = player
         return copy_of_the_board
     else:
-        i = lowest_free(board, action)
-        board[i, action] = player
-        return board
+        i = lowest_free(board_1, action)
+        board_1[i, action] = player
+        return board_1
 
 
-def connect(board: np.ndarray, player: BoardPiece, n=4) -> bool:
+def connect(board_2: np.ndarray, player: BoardPiece, n=4) -> bool:
     # winning kernels:
     four = np.ones((1, n))
     four_connected = [four, four.T, np.diag(four.flatten()), np.fliplr(np.diag(four.reshape(4)))]
 
     # convolution of four1 and the board will reveal connectedness
-    if player == PLAYER1:
-        for four1 in four_connected:
-            board_player1 = np.where(board == 1, board, 0)  # exclude summing board pieces twos
-            convolution = np.round(fftconvolve(board_player1, four1, "valid"))
-            connect_n = (convolution == n).any()
-    if player == PLAYER2:
-        for four1 in four_connected:
-            convolution = np.round(fftconvolve(board, four1, "valid"))
-            connect_n = (convolution == 2*n).any()
-    return connect_n
+    is_connected = None
+    if player == BoardPiece(1):
+        for kernel in four_connected:
+            board_player1 = np.where(board_2 == 1, board_2, 0)  # exclude summing board pieces twos
+            convolution = np.round(fftconvolve(board_player1, kernel, "valid"))
+            is_connected = (convolution == n).any()
+            if is_connected:
+                return True
+    if player == BoardPiece(2):
+        for kernel in four_connected:
+            convolution = np.round(fftconvolve(board_2, kernel, "valid"))
+            is_connected = (convolution == 2*n).any()
+            if is_connected:
+                return True
+    return False
 
 
 def check_end_state(
-        board: np.ndarray, player: BoardPiece,
+        board_3: np.ndarray, player: BoardPiece,
         last_action: Optional[PlayerAction] = None
 ) -> GameState:
     """
@@ -163,9 +167,9 @@ def check_end_state(
 
     game_state = GameState.STILL_PLAYING
 
-    if connect(board, player):
-            game_state = GameState.IS_WIN
-    elif (board != 0).all():
+    if connect(board_3, player):
+        game_state = GameState.IS_WIN
+    elif (board_3 != 0).all():
         game_state = GameState.IS_DRAW
     return game_state
 

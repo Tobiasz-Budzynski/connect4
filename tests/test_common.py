@@ -93,7 +93,7 @@ def test_apply_player_action():
     from agents.common import pretty_print_board
 
     board0, low_frees = prepare_board_for_testing()
-
+    print(pretty_print_board(board0))
     change = np.zeros((6, 7))
     action = rng.integers(low=0, high=6)
     player = BoardPiece(rng.integers(low=1, high=3))
@@ -133,11 +133,15 @@ def test_connect():
 
 
 def test_check_end_state():
-    from agents.common import check_end_state
-
-    for i in range(1017):
+    from agents.common import check_end_state, pretty_print_board
+    for i in range(1000):
         board, low_frees = prepare_board_for_testing()
         player = BoardPiece(rng.integers(low=1, high=3))
+        if i < 3:
+            board[0][0:5] = BoardPiece(2)
+            now_game = check_end_state(board, player)
+            pretty_print_board(board)
+            print(now_game)
   # maydo: implementing last action parameter
         now_game = check_end_state(board, player)
         assert isinstance(now_game, Enum)
