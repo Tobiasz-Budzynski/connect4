@@ -27,7 +27,7 @@ def user_move(board: np.ndarray, _player: BoardPiece,
 
         except ValueError:
             print("Input could not be converted to the data type PlayerAction,"
-                  " try entering an integer.")
+                  " try entering an appropriate integer.")
         return action, saved_state
 
 

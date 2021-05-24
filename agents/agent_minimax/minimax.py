@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Optional, Tuple
-from agents.common import BoardPiece, PlayerAction, SavedState, GameState, connect, lowest_free, apply_player_action, check_end_state
+from agents.common import BoardPiece, PlayerAction, SavedState, GameState, lowest_free, apply_player_action, check_end_state
 
 
 def generate_move_minimax(
@@ -25,7 +25,9 @@ def generate_move_minimax(
                            0,               # count depth
                            [0, None],       # current heuristic, action
                            [0, None],       # best untill now heuristic, action
-                           board_0)
+                           board_0
+                           )
+
     heuristic = state.heuristic_for_action[0]
     opponent = BoardPiece((player % 2) + 1)
 
@@ -47,35 +49,37 @@ def generate_move_minimax(
             if hp_game_state == GameState.STILL_PLAYING:
                 for hp_reaction in range(7):
                     hp_reaction = PlayerAction(hp_reaction)
-                    hp_re_board = apply_player_action(hp_board, hp_reaction, opponent, copy=True)
+                    if lowest_free(hp_board, hp_reaction) < 6:
+                        hp_re_board = apply_player_action(hp_board, hp_reaction, opponent, copy=True)
 
-                    hp_re_game_state = check_end_state(hp_re_board, opponent)
+                        hp_re_game_state = check_end_state(hp_re_board, opponent)
 
-                    if hp_re_game_state == GameState.IS_WIN:
-                        break
-                        # opponent would win, abort this action
+                        if hp_re_game_state == GameState.IS_WIN:
+                            break
+                            # opponent would win, abort this action
 
-                    # recursion
-                    if (hp_re_game_state == GameState.STILL_PLAYING) and (state.count_depth != state.depth):
-                        state.count_depth += 1
-                        generate_move_minimax(hp_re_board, player, state)
+                        # recursion
+                        if (hp_re_game_state == GameState.STILL_PLAYING) and (state.count_depth != state.depth):
+                            state.count_depth += 1
+                            generate_move_minimax(hp_re_board, player, state)
 
-                    # end of searched depth tree
-                    else:
-                        heuristic_norm = 7 ** (state.depth+1)
-                        new_heuristic = heuristic / heuristic_norm
+                        # end of searched depth tree
+                        else:
+                            heuristic_norm = 7 ** (state.depth+1)
+                            new_heuristic = heuristic / heuristic_norm
 
-                        # good value
-                        if new_heuristic > state.heuristic_for_action[0]:
-                            # saving heuristic we normalize it
-                            state.max_heuristic_for_action = [state.heuristic_for_action[0]/heuristic_norm,
-                                                              state.heuristic_for_action[1]]
-                            # prepare for checking other options
-                            state.heuristic_for_action[0] = [0, None]
-                        # end of checking
-                        if hp_reaction == 0:
-                            return state.max_heuristic_for_action[1], state
-    # if You got here, it should be a lost game
+                            # good value
+                            if new_heuristic > state.heuristic_for_action[0]:
+                                # saving heuristic we normalize it
+                                state.max_heuristic_for_action = [state.heuristic_for_action[0]/heuristic_norm,
+                                                                  state.heuristic_for_action[1]]
+                                # prepare for checking other options
+                                state.heuristic_for_action = [0, None]
+    # end of checking
+    if state.max_heuristic_for_action[1] is None:
+        # if You got here, it should be a lost game
+        from agents.agent_random.random import generate_move_random
+        return generate_move_random(state.board_5, player, None)
+    return state.max_heuristic_for_action[1], state
     # TODO: check if the cases, when hypothetically we get a draw, don't lead here
-    from agents.agent_random.random import generate_move_random
-    return generate_move_random(state.board_5, player, None)
+

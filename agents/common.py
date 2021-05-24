@@ -119,7 +119,7 @@ def apply_player_action(
         player: BoardPiece, copy: bool = False
 ) -> np.ndarray:
     """
-    Sets board[i, action] = player, where i is the lowest open row. The modified
+    Sets board[i, action] = player, where i is the lowest open row for the column with the number "action". The modified
     board is returned. If copy is True, makes a copy of the board before modifying it.
     """
     if copy is True:
@@ -133,11 +133,16 @@ def apply_player_action(
 
 
 def connect(board_2: np.ndarray, player: BoardPiece, n=4) -> bool:
+    """
+    Checks if there are connected pieces (of length n) on the board.
+    Uses convolution for that, where kernels are matrices.
+    When a board piece is wun, the board is cleared of twos before checking convolution.
+    """
     # winning kernels:
     four = np.ones((1, n))
     four_connected = [four, four.T, np.diag(four.flatten()), np.fliplr(np.diag(four.reshape(4)))]
 
-    # convolution of four1 and the board will reveal connectedness
+    # convolution of kernel and the board will reveal connectedness
     is_connected = None
     if player == BoardPiece(1):
         for kernel in four_connected:
