@@ -11,3 +11,4 @@ def test_generate_move_minimax():
    # state = SavedState(2, 0, [0, None], [0, None])  # depth, count_depth,
                                         # heuristic for action, max heuristic for action
     a = generate_move_minimax(board, player, None)
+    # Remark: there's no test here

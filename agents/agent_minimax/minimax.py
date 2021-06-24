@@ -1,6 +1,17 @@
 import numpy as np
 from typing import Optional, Tuple
-from agents.common import BoardPiece, PlayerAction, SavedState, GameState, lowest_free, apply_player_action, check_end_state
+from agents.common import BoardPiece, PlayerAction, SavedState, GameState, lowest_free, apply_player_action, check_end_state, GameDimensions
+
+# MOnte CArlo Tree Search
+# Few classes to structure the search
+
+def heuristic_func(depth_count: int, game_state: GameState) -> float:
+    """"
+    Knowing which depth we are considering we can deduce, if it is an opponent or a player.
+    Accordingly, we give heuristics positive or negative.
+    1st version is with just wins and loses normalized according to depth.
+    """
+
 
 
 def generate_move_minimax(
@@ -15,10 +26,11 @@ def generate_move_minimax(
     unless heuristic[0] is -infinity, which means that opponent can force a win.
     Heuristic[1] is just an action considered by the player.
     """
-    # TODO: fix the bug of applaying every possible action at once.
-    # TODO: check the loops and logic gates.
     # TODO: implement a proper alpha-beta pruning structure.
     # maydo: checking for immediate win could be as a first iteration.
+
+    # Remark: this function is way too long. Generally, functions should only do one specific thing, which makes them
+    #         easier to understand, maintain, and test. So you should heavily refactor this function and split it up.
 
     if state is None:
         state = SavedState(2,               # max depth
@@ -35,33 +47,28 @@ def generate_move_minimax(
     if state.count_depth == 0:
         state.board_5 = board_0
 
-    # action (hp stands for hypothetical)
-    for hp_action in range(7):
-        hp_action = PlayerAction(hp_action)
+    possible_moves = []
+    for hp_action in range(GameDimensions.LENGTH.value):
         if lowest_free(board_0, hp_action) < 6:
-            hp_board = apply_player_action(board_0, hp_action, player, copy=True)
+            PlayerAction(possible_moves.append(hp_action))
 
-            hp_game_state = check_end_state(hp_board, player)
-            if hp_game_state == GameState.IS_DRAW:
-                state.heuristic_for_action = (0, hp_action)
 
-            # Opponents reaction
-            if hp_game_state == GameState.STILL_PLAYING:
-                for hp_reaction in range(7):
-                    hp_reaction = PlayerAction(hp_reaction)
-                    if lowest_free(hp_board, hp_reaction) < 6:
-                        hp_re_board = apply_player_action(hp_board, hp_reaction, opponent, copy=True)
+    # Remark: In general, you should refactor this part. You have a lot of repeated stuff below, which you can
+    #         bring into a more concise form
+    # Remark: So far, you're only checking for wins/losses/draws. You need to make the transition to true minimax!
+    for hp_action in possible_moves:
 
-                        hp_re_game_state = check_end_state(hp_re_board, opponent)
-
-                        if hp_re_game_state == GameState.IS_WIN:
-                            break
-                            # opponent would win, abort this action
-
-                        # recursion
-                        if (hp_re_game_state == GameState.STILL_PLAYING) and (state.count_depth != state.depth):
+        hp_board = apply_player_action(board_0, hp_action, player, copy=True)
+        hp_game_state = check_end_state(hp_board, player)
+        if hp_game_state == GameState.IS_DRAW:
+            state.heuristic_for_action = (0, hp_action)
+        if hp_game_state == GameState.IS_WIN:
+            # TODO: use heuristic func
+            state.heuristic_for_action = (heuristic_func(), hp_action)
+        if (hp_re_game_state == GameState.STILL_PLAYING) and (state.count_depth != state.depth):
                             state.count_depth += 1
                             generate_move_minimax(hp_re_board, player, state)
+                            # Remark: it's a bit weird that you start recursion only here, and not in the first loop.
 
                         # end of searched depth tree
                         else:

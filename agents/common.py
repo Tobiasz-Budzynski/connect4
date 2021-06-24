@@ -1,7 +1,7 @@
 import numpy as np
 from enum import Enum
-from typing import Optional
-from typing import Callable, Tuple
+from typing import Optional, Callable, Tuple, TYPE_CHECKING
+#if TYPE_CHECKING:
 from scipy.signal import fftconvolve
 
 
@@ -12,7 +12,8 @@ class SavedState:
         self.max_heuristic_for_action = story_1
         self.count_depth = count_depth_1
         self.board_5 = board_6
-
+        # Remark: naming things with numerical values is often confusing and easy to mess up. Expressive names are important!
+        # here: numbers are just for local variables to have some distinguishment when debugging, but not too distracting.
 
 BoardPiece = np.int8  # The data type of the board
 NO_PLAYER = BoardPiece(0)  # board[i, j] == NO_PLAYER where the position is empty
@@ -21,7 +22,7 @@ PLAYER2 = BoardPiece(2)  # board[i, j] == PLAYER2 where player 2 has a piece
 
 BoardPiecePrint = str  # type for string representation of Board
 NO_PLAYER_PRINT = BoardPiecePrint(' ')
-PLAYER1_PRINT = BoardPiecePrint('X')  # nice representations \U+25FB  \U+25B2 ?
+PLAYER1_PRINT = BoardPiecePrint('X')
 PLAYER2_PRINT = BoardPiecePrint('O')
 
 PlayerAction = np.int8  # The column to be played
@@ -45,6 +46,7 @@ def initialize_game_state() -> np.ndarray:
     and data type (dtype) BoardPiece, initialized to 0 (NO_PLAYER)
     """
     board = np.zeros((6, 7), dtype=BoardPiece)
+    # Remark: since you've defined the parameters in an enumeration class (GameDimensions), why not use them here?
     return board
 
 
@@ -111,7 +113,7 @@ def lowest_free(board: np.ndarray, action: PlayerAction) -> int:
     """
     column = board[:, action]
     nonzero = np.nonzero(column)
-    return int(nonzero[0].shape[0])
+    return int(nonzero[0].shape[0]) # Remark: maybe flattening nonzero first could save you from this rather cumbersome notation
 
 
 def apply_player_action(
@@ -123,11 +125,11 @@ def apply_player_action(
     board is returned. If copy is True, makes a copy of the board before modifying it.
     """
     if copy is True:
-        copy_of_the_board = np.copy(board_1)
+        copy_of_the_board = np.copy(board_1)  # Remark: again, naming with numerals is not great
         copy_of_the_board[lowest_free(board_1, action), action] = player
         return copy_of_the_board
     else:
-        i = lowest_free(board_1, action)
+        i = lowest_free(board_1, action)  # Remark: bare letters as variables are also not ideal
         board_1[i, action] = player
         return board_1
 
@@ -161,7 +163,7 @@ def connect(board_2: np.ndarray, player: BoardPiece, n=4) -> bool:
 
 
 def check_end_state(
-        board_3: np.ndarray, player: BoardPiece,
+        board: np.ndarray, player: BoardPiece,
         last_action: Optional[PlayerAction] = None
 ) -> GameState:
     """
@@ -169,14 +171,31 @@ def check_end_state(
     action won (GameState.IS_WIN) or drawn (GameState.IS_DRAW) the game,
     or is play still on-going (GameState.STILL_PLAYING)?
     """
-
+    from tests.test_common import prepare_board_and_player_for_testing
+    # TODO: continue with TEST and design of this function.
     game_state = GameState.STILL_PLAYING
 
-    if connect(board_3, player):
+    if connect(board, player):
         game_state = GameState.IS_WIN
-    elif (board_3 != 0).all():
+    elif (board != 0).all():
         game_state = GameState.IS_DRAW
     return game_state
+
+
+def opponent(player: BoardPiece) -> BoardPiece:
+    op = BoardPiece(player%2 + 1)
+    return op if player != 0 else BoardPiece(0)
+
+
+def available_moves(board: np.ndarray) -> np.ndarray:
+    """
+    checks the moves still available of a board, returns a 1d vector of player action data type.
+    """
+    low_frees = np.zeros(board.shape[1])
+    for j in range(board.shape[1]):
+        low_frees[j] = lowest_free(board, j)
+    legal_moves = np.array(np.argwhere(low_frees < board.shape[0]).reshape(-1), dtype=PlayerAction)
+    return legal_moves
 
 
 GenMove = Callable[

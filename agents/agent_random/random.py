@@ -22,4 +22,4 @@ def generate_move_random(
         low_frees[j] = lowest_free(board, j)
     columns_free = np.argwhere(low_frees < board.shape[0]).reshape(-1)
     action = np.random.choice(columns_free).astype(PlayerAction)
-    return action, saved_state
+    return action
