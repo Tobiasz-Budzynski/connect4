@@ -1,19 +1,15 @@
 import numpy as np
 from enum import Enum
 from typing import Optional, Callable, Tuple, TYPE_CHECKING
+
+# side note: occasional problem with using the fftconvolve, check convolve2D
 #if TYPE_CHECKING:
 from scipy.signal import fftconvolve
 
 
 class SavedState:
-    def __init__(self, depth_1, count_depth_1, heuristic_for_action_1, story_1, board_6):
-        self.depth = depth_1
-        self.heuristic_for_action = heuristic_for_action_1
-        self.max_heuristic_for_action = story_1
-        self.count_depth = count_depth_1
-        self.board_5 = board_6
-        # Remark: naming things with numerical values is often confusing and easy to mess up. Expressive names are important!
-        # here: numbers are just for local variables to have some distinguishment when debugging, but not too distracting.
+    pass
+
 
 BoardPiece = np.int8  # The data type of the board
 NO_PLAYER = BoardPiece(0)  # board[i, j] == NO_PLAYER where the position is empty
@@ -171,7 +167,6 @@ def check_end_state(
     action won (GameState.IS_WIN) or drawn (GameState.IS_DRAW) the game,
     or is play still on-going (GameState.STILL_PLAYING)?
     """
-    from tests.test_common import prepare_board_and_player_for_testing
     # TODO: continue with TEST and design of this function.
     game_state = GameState.STILL_PLAYING
 

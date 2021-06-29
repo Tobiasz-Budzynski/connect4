@@ -2,8 +2,17 @@ import numpy as np
 from typing import Optional, Tuple
 from agents.common import BoardPiece, PlayerAction, SavedState, GameState, lowest_free, apply_player_action, check_end_state, GameDimensions
 
-# MOnte CArlo Tree Search
-# Few classes to structure the search
+
+class SavedMiniMax(SavedState):
+    def __init__(self, depth_1, count_depth_1, heuristic_for_action_1, story_1, board_6):
+        self.depth = depth_1
+        self.heuristic_for_action = heuristic_for_action_1
+        self.max_heuristic_for_action = story_1
+        self.count_depth = count_depth_1
+        self.board_5 = board_6
+        # Remark: naming things with numerical values is often confusing and easy to mess up. Expressive names are important!
+        # here: numbers are just for local variables to have some distinguishment when debugging, but not too distracting.
+
 
 def heuristic_func(depth_count: int, game_state: GameState) -> float:
     """"

@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from agents.agent_mcts.mcts import Tree, Node
-from agents.common import initialize_game_state, apply_player_action, PlayerAction, BoardPiece
-from agents.common import available_moves, opponent
+from agents.common import initialize_game_state, apply_player_action,\
+    PlayerAction, BoardPiece, GameState, available_moves, opponent
 from tests.test_common import prepare_board_for_testing, prepare_board_and_player_for_testing
 from agents.agent_random.random import generate_move_random
 
@@ -25,7 +25,7 @@ def test_Tree_expand():
 
     tree.expand(root)
 
-    assert (tree.root.board == board).any()
+    assert (tree.root.board == board).all()
     action, child_node = list(root.children.items())[0]
     assert action in range(7)
     assert isinstance(child_node, Node)
@@ -59,10 +59,28 @@ def test_Tree_expand_too_much():
             prep["tree"].expand(prep["root"])
 
 
-def test_Tree_playout():
-    prep = initialize_random_root()
+def test_Tree_playout_end_node():
+    situation = initialize_random_root()
+
+    # put opponent pieces to the first column in the node's board.
+    situation["root"].board[:, 0] = opponent(situation["player"])
+    result = situation["tree"].playout(situation["root"])
+    assert situation["root"]._count == 0
+    assert isinstance(result[0], GameState)
+    assert result[0] != GameState.STILL_PLAYING
+    assert isinstance(result[1], BoardPiece)
 
 
+def test_Tree_playout_proper():
+
+    situation = initialize_random_root()
+    situation["tree"].expand(situation["root"])
+    result = situation["tree"].playout(situation["root"])
+    print("Game's state is ", result)
+    assert isinstance(result[0], GameState)
+    assert result[0] != GameState.STILL_PLAYING
+    assert isinstance(result[1], BoardPiece)
+    assert situation["root"]._count in range(6*7+1)
 
 
 # def test_generate_move_mcts():

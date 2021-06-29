@@ -1,6 +1,6 @@
 import numpy as np
-from agents.common import BoardPiece, PlayerAction, SavedState, apply_player_action,\
-    available_moves, opponent
+from agents.common import BoardPiece, PlayerAction, GameState, SavedState, \
+    apply_player_action, available_moves, opponent, check_end_state
 
 from typing import Optional, Tuple
 
@@ -31,7 +31,6 @@ class Node:
         self.trials = 0
 
 
-
 class Tree:  # this class is heavily inspired by by Ruda Moura's example  from stackoverflow
     # class for MCTS, storing root etc.
     """
@@ -58,7 +57,7 @@ class Tree:  # this class is heavily inspired by by Ruda Moura's example  from s
         c : exploration parameter
         :argument: child, (parent, if not accesiible through child) player to move,
         :return: a node, player to move, board representation.
-        c = np.sqrt(2)
+        c = np.sqrt(2) (or use 1.42)
         argument_max(w/s + c*np.sqrt(np.ln(s_parent)/s))
         """
         raise NotImplementedError
@@ -70,37 +69,60 @@ class Tree:  # this class is heavily inspired by by Ruda Moura's example  from s
         In child node store the new player to move, the state of the board and the parent.
         In parent node store reference to child, and delete the action taken from unexpanded.
         :param node: a leaf of the tree and future parent
-        :return: nothing? or the child node?
+        :return: nothing?  the child node?
         """
         if node.unexpanded == set():
-            raise Exception('Can not choose an action from an empty set in node.unexpanded')
+            raise Exception('Can not choose an action from an empty set in node.unexpanded. You got to an end node.')
+
         else:
             action = np.random.choice(list(node.unexpanded))
             child_board = apply_player_action(node.board, action, node.player, copy=True)
 
-            child = Node(child_board, opponent(node.player), parent=node)
-            node.children[action] = child                          # assign a child to the parent
+            child = Node(child_board, opponent(node.player), parent=node)  # assign to the child, the parent
+            node.children[action] = child                                  # assign to the parent, the child
 
             node.unexpanded.remove(action)
+        return child
 
-    def playout(self, node):
+    @staticmethod
+    def playout(node) -> (GameState, BoardPiece):
         """
         Simulation of the game is carried out till it's end.
-        USE RANDOM AGENT??
-        It returns the value win or lose or draw.
-        :argument: node, player to move, board representation.
-        :return: win, lose, draw
+        Use random agent.
         1. which moves are legal?
         2. choose random move.
         3. update game state (apply action, check for end, player switch etc.)
+        :argument: node
+        :return: Tuple of a (win or draw) and the player, who moved last.
         """
-        from agents.common import check_end_state, GameState
-        state = check_end_state(node.board, node.player)
-        if state == GameState.IS_WIN:
-            node.wins += 1
-        node.trials += 1
+        # maydo: use human_vs_agent function to playout random vs random.
 
-        raise NotImplementedError
+        state = check_end_state(node.board, node.player)
+
+        if state is not GameState.STILL_PLAYING:
+            node.unexpanded = set()
+            result = state, opponent(node.player)
+
+        else:
+            from agents.agent_random.random import generate_move_random
+            player_new = node.player.copy()
+            board_new = node.board.copy()
+
+            from agents.common import pretty_print_board
+            node._count = 0
+
+            while check_end_state(board_new, opponent(player_new)) == GameState.STILL_PLAYING:
+                action_new, saved_state = generate_move_random(board_new, player_new, None)
+                board_new = apply_player_action(board_new, action_new, player_new)
+                player_new = opponent(player_new)
+
+                print(pretty_print_board(board_new), "\n", node._count)
+                node._count += 1
+
+            result = check_end_state(board_new, opponent(player_new)), player_new
+
+        return result
+
 
     def backprop(self, node, game_state):
         """
@@ -108,6 +130,8 @@ class Tree:  # this class is heavily inspired by by Ruda Moura's example  from s
          get wins increased (because the statistics is used, by the parent).
         :return:
         """
+        node.trials += 1
+
         raise NotImplementedError
 
 

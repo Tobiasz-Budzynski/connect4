@@ -21,5 +21,9 @@ def generate_move_random(
     for j in range(board.shape[1]):
         low_frees[j] = lowest_free(board, j)
     columns_free = np.argwhere(low_frees < board.shape[0]).reshape(-1)
+
+    if set(columns_free) == set():
+        raise Exception("No available action for the player", player)
+
     action = np.random.choice(columns_free).astype(PlayerAction)
     return action
