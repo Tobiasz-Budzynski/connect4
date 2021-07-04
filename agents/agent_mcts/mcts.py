@@ -31,7 +31,7 @@ class Node:
         self.trials = 0
 
 
-class Tree:  # this class is heavily inspired by by Ruda Moura's example  from stackoverflow
+class MCTS:
     # class for MCTS, storing root etc.
     """
     Selection, expansion, playout, backpropagation.
@@ -59,11 +59,12 @@ class Tree:  # this class is heavily inspired by by Ruda Moura's example  from s
         :return: a node, player to move, board representation.
         c = np.sqrt(2) (or use 1.42)
         argument_max(w/s + c*np.sqrt(np.ln(s_parent)/s))
+        note for Implementing_me, maydo: Check the boarder cases (leaf is has a full board or almost full). Good luck!
         """
         raise NotImplementedError
 
     @staticmethod
-    def expand(node):
+    def expand(node: Node):
         """
         Make a child node from the node, randomly selecting from available actions.
         In child node store the new player to move, the state of the board and the parent.
@@ -85,7 +86,7 @@ class Tree:  # this class is heavily inspired by by Ruda Moura's example  from s
         return child
 
     @staticmethod
-    def playout(node) -> (GameState, BoardPiece):
+    def playout(node: Node) -> (GameState, BoardPiece):
         """
         Simulation of the game is carried out till it's end.
         Use random agent.
@@ -97,8 +98,8 @@ class Tree:  # this class is heavily inspired by by Ruda Moura's example  from s
         """
         # maydo: use human_vs_agent function to playout random vs random.
 
+        # Checking the node given.
         state = check_end_state(node.board, node.player)
-
         if state is not GameState.STILL_PLAYING:
             node.unexpanded = set()
             result = state, opponent(node.player)
@@ -112,27 +113,33 @@ class Tree:  # this class is heavily inspired by by Ruda Moura's example  from s
             node._count = 0
 
             while check_end_state(board_new, opponent(player_new)) == GameState.STILL_PLAYING:
-                action_new, saved_state = generate_move_random(board_new, player_new, None)
+                action_new = generate_move_random(board_new, player_new, None)
                 board_new = apply_player_action(board_new, action_new, player_new)
                 player_new = opponent(player_new)
-
-                print(pretty_print_board(board_new), "\n", node._count)
                 node._count += 1
 
             result = check_end_state(board_new, opponent(player_new)), player_new
 
         return result
 
-
-    def backprop(self, node, game_state):
+    def backprop(self, node: Node, game_state: GameState, last_player: BoardPiece):
         """
-        if node's player win, then the opponent nodes along the path
+        Backprop increases the trials count along the path to the tree's root
+        and accordingly to the end state - the wins of every second node along the path,
+        (without changing wins, when it is a draw).
+        If the winner is the node's player, then the opponent nodes along the path
          get wins increased (because the statistics is used, by the parent).
+        If the winner is the node's opponent, then the node's wins is increased.
         :return:
         """
-        node.trials += 1
+        if not node == "root":
+            node.trials += 1
+            if last_player == opponent(node.player):
+                node.wins += 1
+            self.backprop(node.parent, game_state, last_player)
 
-        raise NotImplementedError
+        elif node == "root":
+            pass
 
 
 def generate_move_mcts(
