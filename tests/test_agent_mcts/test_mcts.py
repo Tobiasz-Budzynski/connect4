@@ -5,7 +5,7 @@ import pytest
 
 from agents.agent_mcts.mcts import MCTS, Node
 from agents.common import initialize_game_state, apply_player_action,\
-    PlayerAction, BoardPiece, GameState, available_moves, opponent
+    PlayerAction, BoardPiece, GameState, available_moves, opponent, check_end_state
 from tests.test_common import prepare_board_for_testing, prepare_board_and_player_for_testing
 from agents.agent_random.random import generate_move_random
 
@@ -69,9 +69,10 @@ def test_MCTS_playout_end_node_logic():
     situation["root"].board[:, 0] = opponent(situation["player"])
     result = situation["tree"].playout(situation["root"])
     assert situation["root"]._count == 0
-    assert isinstance(result[0], GameState)
-    assert result[0] != GameState.STILL_PLAYING
-    assert isinstance(result[1], BoardPiece)
+    assert isinstance(result[0], Node)
+    assert isinstance(result[1], GameState)
+    assert result[1] != GameState.STILL_PLAYING
+    assert isinstance(result[2], BoardPiece)
 
 
 def test_Tree_playout_proper():
@@ -80,9 +81,10 @@ def test_Tree_playout_proper():
     situation["tree"].expand(situation["root"])
     result = situation["tree"].playout(situation["root"])
     print("\n \n Game's state and a nr of the player after playout are: ", result)
-    assert isinstance(result[0], GameState)
-    assert result[0] != GameState.STILL_PLAYING
-    assert isinstance(result[1], BoardPiece)
+    assert isinstance(result[0], Node)
+    assert isinstance(result[1], GameState)
+    assert result[1] != GameState.STILL_PLAYING
+    assert isinstance(result[2], BoardPiece)
     assert situation["root"]._count in range(6*7+1)
 
 
@@ -99,7 +101,7 @@ def test_tree_backprop_first_node_and_stats():
         prep = initialize_random_root()
         child = MCTS.expand(prep["root"])
         child_frozen = copy.deepcopy(child)
-        state, last_player = MCTS.playout(child)
+        node, state, last_player = MCTS.playout(child)
 
         prep["tree"].backprop(child, state, last_player)
 
@@ -127,10 +129,10 @@ def prep_random_tree():
     for i in range(np.random.randint(len(node.unexpanded))):
         places_left_in_board = np.abs(6*7 - np.count_nonzero(node.board) - 1)
         if places_left_in_board != 0:
-            for count_expand in range(np.maximum(10, np.random.randint(places_left_in_board))):
-                # side note: Every few trials a bug in design made it
-                # calling for expansion a node with empty unexpanded set. So, I use the <<if>> clause.:
-                if node.unexpanded != set():
+            for count_expand in range(np.minimum(10, np.random.randint(places_left_in_board))):
+                # maydo: rewrite.
+                # To avoid calling for expansion a node with empty unexpanded set - the <<if>> clause is used:
+                if node.unexpanded != set() and check_end_state(node.board, opponent(node.player)) == GameState.STILL_PLAYING:
                     node = MCTS.expand(node)
     return prep, node
 
@@ -171,9 +173,57 @@ def test_backprop_trials():
                     assert leaf.wins == (leaf_old.wins +1)
 
 
-def test_MCTS_select():
+def test_MCTS_evaluate():
+    # To change probablilities of initial board - look at probabilities variable in test common, prepare board and player.
+
+    while True:
+
+        prep, leaf = prep_random_tree()
+        tree = prep["tree"]
+        root = prep["root"]
+        if check_end_state(leaf.board, leaf.player) == GameState.STILL_PLAYING:
+
+            child = tree.expand(leaf)
+            if check_end_state(child.board, child.player) == GameState.STILL_PLAYING:
+                break
+
+    selected_child = tree._select_next_child(root)
+
+    while selected_child.children != {}:
+        selected_child = tree._select_next_child(selected_child)
+
+    simulation = MCTS.playout(child)
+    tree.backprop(*simulation)
 
 
+def test_loop_of_MCTS_methods():
+    """
+    Select.
+    Expand.
+    Playout.
+    Backpropagation.
+    Start from a root (no children). Select returns the root. Than expand.
+    Than backprogation. Make it in a loop with a variable length. Finish.
+    Check for the best action from the root.
+    Play it against the random player.
+    :return:
+    """
+    board, player = prepare_board_and_player_for_testing()
+    root = Node(board, player)
+    tree = MCTS(root)
+
+    leaf = tree.select()
+    new_leaf = tree.expand(leaf)
+    last_leaf, state, last_player = tree.playout(new_leaf)
+    tree.backprop(last_leaf, state, last_player)
+
+def test_loop_of_MCTS_methods_abrev():
+
+    root = Node(*prepare_board_and_player_for_testing())
+    t = MCTS(root)  # stands for a tree
+
+    for loops in range(10):
+        t.backprop(*t.playout(t.expand(t.select())))
 
 
 # def test_generate_move_mcts():

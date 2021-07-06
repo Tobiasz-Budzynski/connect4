@@ -79,18 +79,18 @@ def generate_move_minimax(
                             generate_move_minimax(hp_re_board, player, state)
                             # Remark: it's a bit weird that you start recursion only here, and not in the first loop.
 
-            # end of searched depth tree
-            else:
-                heuristic_norm = 7 ** (state.depth+1)
-                new_heuristic = heuristic / heuristic_norm
+        # end of searched depth tree
+        else:
+            heuristic_norm = 7 ** (state.depth+1)
+            new_heuristic = heuristic / heuristic_norm
 
-                # good value
-                if new_heuristic > state.heuristic_for_action[0]:
-                    # saving heuristic we normalize it
-                    state.max_heuristic_for_action = [state.heuristic_for_action[0]/heuristic_norm,
-                                                      state.heuristic_for_action[1]]
-                    # prepare for checking other options
-                    state.heuristic_for_action = [0, None]
+            # good value
+            if new_heuristic > state.heuristic_for_action[0]:
+                # saving heuristic we normalize it
+                state.max_heuristic_for_action = [state.heuristic_for_action[0]/heuristic_norm,
+                                                  state.heuristic_for_action[1]]
+                # prepare for checking other options
+                state.heuristic_for_action = [0, None]
     # end of checking
     if state.max_heuristic_for_action[1] is None:
         # if You got here, it should be a lost game

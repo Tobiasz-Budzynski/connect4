@@ -79,7 +79,8 @@ def prepare_board_and_player_for_testing():
     from agents.common import connect
 
     while True:
-        length = np.random.randint(6 * 7 - 1)
+        probabilities = np.flip(np.array(range(6*7-2))+20)/sum(np.flip(np.array(range(6*7-2))+20))
+        length = np.random.choice(1+np.array(range(6*7-2)), p=probabilities)
         board = initialize_game_state()
         player = BoardPiece(np.random.randint(1, 3))
 
