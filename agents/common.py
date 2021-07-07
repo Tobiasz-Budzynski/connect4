@@ -4,7 +4,7 @@ from typing import Optional, Callable, Tuple, TYPE_CHECKING
 
 # side note: occasional problem with using the fftconvolve, check convolve2D
 #if TYPE_CHECKING:
-from scipy.signal import fftconvolve
+from scipy.signal import fftconvolve, convolve2d
 
 
 class SavedState:
@@ -24,7 +24,7 @@ PLAYER2_PRINT = BoardPiecePrint('O')
 PlayerAction = np.int8  # The column to be played
 
 
-class GameDimensions(Enum):
+class GameDim(Enum):
     HEIGHT = 6
     LENGTH = 7
     CONNECT = 4
@@ -93,7 +93,7 @@ def string_to_board(pp_board: str) -> np.ndarray:
 
     surged_str = still_a_str.split('\n')[1:7]  # check
     surged_string_array = np.zeros((6, 7), dtype=str)
-    for i in range(GameDimensions.HEIGHT.value):
+    for i in range(GameDim.HEIGHT.value):
         row = list(surged_str[i])[::2]
         surged_string_array[i, :] = np.array(row)
 
@@ -113,7 +113,7 @@ def lowest_free(board: np.ndarray, action: PlayerAction) -> int:
 
 
 def apply_player_action(
-        board_1: np.ndarray, action: PlayerAction,
+        board: np.ndarray, action: PlayerAction,
         player: BoardPiece, copy: bool = False
 ) -> np.ndarray:
     """
@@ -121,41 +121,39 @@ def apply_player_action(
     board is returned. If copy is True, makes a copy of the board before modifying it.
     """
     if copy is True:
-        copy_of_the_board = np.copy(board_1)  # Remark: again, naming with numerals is not great
-        copy_of_the_board[lowest_free(board_1, action), action] = player
+        copy_of_the_board = np.copy(board)
+        copy_of_the_board[lowest_free(board, action), action] = player
         return copy_of_the_board
     else:
-        i = lowest_free(board_1, action)  # Remark: bare letters as variables are also not ideal
-        board_1[i, action] = player
-        return board_1
+        i = lowest_free(board, action)
+        board[i, action] = player
+        return board
 
 
-def connect(board_2: np.ndarray, player: BoardPiece, n=4) -> bool:
+def connect(board: np.ndarray, player: BoardPiece, n=4) -> bool:
     """
-    Checks if there are connected pieces (of length n) on the board.
-    Uses convolution for that, where kernels are matrices.
-    When a board piece is wun, the board is cleared of twos before checking convolution.
+    Using scipy convolve2d.
+    :param board: array to check for connected pieces.
+    :param player: the one that just moved, ie the board piece to check.
+    :param n: numbers of pieces connected. Here it's four.
+    :return: boolean: is there four connected pieces or not.
     """
-    # winning kernels:
     four = np.ones((1, n))
     four_connected = [four, four.T, np.diag(four.flatten()), np.fliplr(np.diag(four.reshape(4)))]
 
-    # convolution of kernel and the board will reveal connectedness
-    is_connected = None
+    # Convolution of kernel and the board will reveal connectedness.
     if player == BoardPiece(1):
-        for kernel in four_connected:
-            board_player1 = np.where(board_2 == 1, board_2, 0)  # exclude summing board pieces twos
-            convolution = np.round(fftconvolve(board_player1, kernel, "valid"))
-            is_connected = (convolution == n).any()
-            if is_connected:
-                return True
-    if player == BoardPiece(2):
-        for kernel in four_connected:
-            convolution = np.round(fftconvolve(board_2, kernel, "valid"))
-            is_connected = (convolution == 2*n).any()
-            if is_connected:
-                return True
+        # It's important to exclude summing board pieces of nr two.
+        board = np.where(board== 1, board, 0)
+
+    for kernel in four_connected:
+        convolution = convolve2d(board, kernel, "valid")
+        is_connected = (convolution == player * n).any()
+        if is_connected:
+            return True
+
     return False
+
 
 
 def check_end_state(
@@ -165,9 +163,9 @@ def check_end_state(
     """
     Returns the current game state for the current `player`, i.e. has their last
     action won (GameState.IS_WIN) or drawn (GameState.IS_DRAW) the game,
-    or is play still on-going (GameState.STILL_PLAYING)?
+    or is the play on-going (GameState.STILL_PLAYING)?
     """
-    # TODO: continue with TEST and design of this function.
+    # maydo: continue with TEST and design of this function.
     game_state = GameState.STILL_PLAYING
 
     if connect(board, player):
@@ -178,6 +176,20 @@ def check_end_state(
 
 
 def opponent(player: BoardPiece) -> BoardPiece:
+    """
+    Switches players. Call it just "opponent", to make it work with other funcitons.
+    :param player:
+    :return:
+    """
+    if player == 1:
+        return BoardPiece(2)
+    if player == 2:
+        return BoardPiece(1)
+    if player == 0:
+        return player
+
+
+def opponent_slower_version(player: BoardPiece) -> BoardPiece:
     op = BoardPiece(player%2 + 1)
     return op if player != 0 else BoardPiece(0)
 
@@ -189,8 +201,13 @@ def available_moves(board: np.ndarray) -> np.ndarray:
     low_frees = np.zeros(board.shape[1])
     for j in range(board.shape[1]):
         low_frees[j] = lowest_free(board, j)
-    legal_moves = np.array(np.argwhere(low_frees < board.shape[0]).reshape(-1), dtype=PlayerAction)
-    return legal_moves
+    return np.array(np.argwhere(low_frees < board.shape[0]).reshape(-1), dtype=PlayerAction)
+
+
+def available_moves_another(board: np.ndarray) -> np.ndarray:
+    # maydo: refactor, that the functions returns a set or a vector of seven booleans.
+    # note: this one causes Type error, when calculating set of this return... Why?
+    return np.array(np.argwhere(np.any(board == 0, axis=0)), dtype=PlayerAction)
 
 
 GenMove = Callable[

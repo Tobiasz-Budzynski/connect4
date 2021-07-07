@@ -56,7 +56,10 @@ class MCTS:
         :return: nothing?  the child node?
         """
         if node.unexpanded == set():
-            raise Exception('Can not choose an action from an empty set in node.unexpanded. You got to an end node.')
+            if len(available_moves(node.board)) == 0:
+                return node
+            else:
+                raise Exception("\n The unexpanded set is empty, while still there are available moves. \n The select method shouldn't have alowed it.")
 
         else:
             action = np.random.choice(list(node.unexpanded))
@@ -116,11 +119,15 @@ class MCTS:
         If the winner is the node's player, then the opponent nodes along the path
          get wins increased (because the statistics is used, by the parent).
         If the winner is the node's opponent, then the node's wins is increased.
-        :return:
+        node: is the leaf from which playout was made. Beware - nodes player is the one to make a move
+        so it's the opponent of node's player that had the last move on node's board.
+        game_state: the state after playout.
+        last_player: is the player that made the last move in the playout.
         """
         if not node == "root":
             node.trials += 1
-            if last_player == opponent(node.player):
+
+            if last_player == node.player:  # careful with who is the opponent, look commentary above
                 node.wins += 1
             self.backprop(node.parent, game_state, last_player)
 
@@ -129,8 +136,8 @@ class MCTS:
 
     def _select_next_child(self, parent: Node, c=1.42) -> Node:
         """
-        UCB - upper confidence bound - the bigger, the better.
-        It's values will be used in the select method, but computed during backpropagation.
+        UCB - upper confidence bound - the bigger, the better for the node.
+        It's values will be used in the select method.
         When choosing from a parent node, it's child will have ucb stored.
         .
         At each node we need:
@@ -141,13 +148,13 @@ class MCTS:
         "argument_max(w_i/s_i + c*np.sqrt(np.ln(s_p)/s_i))"
 
         :argument: node
-        :return: child
+        :return: child with the highest heuristic value.
 
-        Todo: Think of storing ucb in nodes (spreading the vector across children). Then updating only new ucb.
+        maydo: Think of storing ucb in nodes (spreading the vector across children) and computing during backprop.
         Maydo: move the part below to tests.
         Note for the implementing me.
             Checking the boarder cases:
-            - TODO: when the leaf has empty unexpanded set!!!!!
+            - when the leaf has empty unexpanded set? A: when the node is fully expanded or when the node is at the Draw.
             - leaf with a full board or almost full - should be checked in the expand method,
             - when trials are zero,
             - when wins are zero,
@@ -155,23 +162,27 @@ class MCTS:
         maydo: Calculate statistics of each column-action (or each pair (action, nr count of move),
          (Confidence Interval?).
         """
-        # prepare wins, trials data (parent trials are prepared):
+        # Prepare wins, trials data (parent trials are prepared).
         wins = np.zeros(7)
         trials = np.full(7, np.infty)  # if no child, we divide by infinity and get zero ucb value.
         for action_str, node in parent.children.items():
             wins[int(action_str)] = node.wins
             trials[int(action_str)] = node.trials
         trial_inverse = np.divide(1, trials)
-        if parent.trials != 0:
-            ucb_vector = wins*trial_inverse + np.sqrt(np.log(parent.trials)*trial_inverse)*c
-        else:
+
+        # Calculate the values.
+        if parent.trials == 0:  # first trial
             return parent.children[np.random.choice(list(map(int, parent.children.keys())))]
-        if len(set(ucb_vector)) == 1:
-            ucb = np.random.randint(3, 6)
-        else:
-            ucb = np.argmax(ucb_vector)
-        print("\n\n", ucb, parent.children)
-        return parent.children[str(ucb)]
+        elif parent.trials != 0:
+            ucb_vector = wins*trial_inverse + np.sqrt(np.log(parent.trials)*trial_inverse)*c
+        """
+        Optional code:
+        if len(set(ucb_vector)) == 1:  # move more often in the middle, if the values are the same
+           ucb = np.random.randint(3, 6)
+        """
+        ucb = np.argmax(ucb_vector)
+
+        return parent.children[ucb]
 
     def select(self):
         """
@@ -180,25 +191,37 @@ class MCTS:
         After using this function, simulation (playout) should be called from the child,
         which is the leaf.
 
-        :return:
+        :return: the leaf with some unexpanded or an end game node
         """
+
         the_child = self.root
-        while the_child.unexpanded == set():
-            #available_moves(the_child.board):
-            #{} and the_child.trials , the_child.wins ??:
-            # versus available moves?
-            # versus the child's children?
+        while the_child.unexpanded == set() and len(available_moves(the_child.board)) != 0:
 
             the_child = self._select_next_child(the_child)
         return the_child
 
 
 def generate_move_mcts(
-        board_8: np.ndarray, player: BoardPiece, state: Optional[SavedState]
+        board: np.ndarray, player: BoardPiece, saved_state_tree: Optional[SavedState]
 ) -> Tuple[PlayerAction, Optional[SavedState]]:
     """
     After playout if node._count is still 0, then there was a win or draw in the expand call.
     """
+
+    #if saved_state_tree is None:
+    root = Node(board, player)
+    t = MCTS(root)  # stands for a tree
+    #else:
+    #    last_action = np.argwhere(board != saved_state_tree.board)[:, 0]
+    #    t = MCTS(saved_state_tree.children[int(last_action)])
+
+    for loop in range(200):
+        t.backprop(*t.playout(t.expand(t.select())))
+    child = t._select_next_child(root)
+    for key, value in root.children.items():
+     if value == child:
+         action = key
+    return action, None
 
 
     # for
@@ -211,5 +234,4 @@ class SavedStateMCTS(SavedState):
 
         :rtype: object
         """
-        self.trials_number = 10  # per possible move
         self.tree = tree

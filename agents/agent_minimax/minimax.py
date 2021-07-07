@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Optional, Tuple
-from agents.common import BoardPiece, PlayerAction, SavedState, GameState, lowest_free, apply_player_action, check_end_state, GameDimensions
+from agents.common import BoardPiece, PlayerAction, SavedState, GameState, lowest_free, apply_player_action, check_end_state, GameDim
 
 
 class SavedMiniMax(SavedState):
@@ -57,7 +57,7 @@ def generate_move_minimax(
         state.board_5 = board_0
 
     possible_moves = []
-    for hp_action in range(GameDimensions.LENGTH.value):
+    for hp_action in range(GameDim.LENGTH.value):
         if lowest_free(board_0, hp_action) < 6:
             PlayerAction(possible_moves.append(hp_action))
 

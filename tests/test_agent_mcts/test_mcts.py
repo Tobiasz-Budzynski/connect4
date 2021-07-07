@@ -1,9 +1,9 @@
 import copy
-
 import numpy as np
 import pytest
+import cProfile
 
-from agents.agent_mcts.mcts import MCTS, Node
+from agents.agent_mcts.mcts import MCTS, Node, generate_move_mcts
 from agents.common import initialize_game_state, apply_player_action,\
     PlayerAction, BoardPiece, GameState, available_moves, opponent, check_end_state
 from tests.test_common import prepare_board_for_testing, prepare_board_and_player_for_testing
@@ -173,7 +173,7 @@ def test_backprop_trials():
                     assert leaf.wins == (leaf_old.wins +1)
 
 
-def test_MCTS_evaluate():
+def test_MCTS_select_next_child():
     # To change probablilities of initial board - look at probabilities variable in test common, prepare board and player.
 
     while True:
@@ -222,14 +222,36 @@ def test_loop_of_MCTS_methods_abrev():
     root = Node(*prepare_board_and_player_for_testing())
     t = MCTS(root)  # stands for a tree
 
-    for loops in range(10):
+    for loop in range(1000):
         t.backprop(*t.playout(t.expand(t.select())))
 
+    assert root.unexpanded == set()
+    if root.children != dict():
+        child = list(root.children.values())[0]
+        assert child.unexpanded == set() or available_moves(child.board) == []
 
-# def test_generate_move_mcts():
+    print(t.root)
+    # todo: test it against random : ]
+
+
+def test_generate_move_mcts_avoid_immediate_loss():
+    for loop in range(1):
+        board = initialize_game_state()
+        board[0, 2:5] = BoardPiece(1)
+        board[0, 0:2] = BoardPiece(2)
+
+        # cProfile.runctx('g(x,t,s)', {'g': generate_move_mcts, 'x': board, 't': BoardPiece(2), 's': None}, {})
+        move, saved_state = generate_move_mcts(board, BoardPiece(2), None)
+        assert move == 5
+
+        print(board)
+
+
+def test_generate_move_mcts_vs_random():
     """
 
     """
+
     # assert  # ...that the child denominators sum up to denominator
     # and child numerators sum up to the opposite
     # of it's parents nominator.

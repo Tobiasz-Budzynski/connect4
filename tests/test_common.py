@@ -155,14 +155,14 @@ def test_apply_player_action():
 
 
 def test_connect():
-    from agents.common import connect, pretty_print_board, PLAYER1_PRINT, PLAYER2_PRINT
+    from agents.common import connect, PLAYER1_PRINT, PLAYER2_PRINT
 
     # Visual checking for correctness of the "connect" function. Uncomment the prints to use.
     for i in range(5):
         board, low_free = prepare_board_for_testing(full=True)
         player = BoardPiece(np.random.randint(1, 3))
         # print(pretty_print_board(board))
-        connect4 = connect(board, player)
+        connected = connect(board, player)
         if player == 1:
             symbol = PLAYER1_PRINT
         else:
@@ -178,7 +178,7 @@ def test_connect():
         board_kernel = board_zeros.copy()
         board_kernel[:kernel.shape[0], :kernel.shape[1]] = kernel
 
-    assert isinstance(connect4, bool)
+    assert isinstance(connected, bool)
     assert True is connect(board, BoardPiece(1))
     assert True is connect(board_kernel, BoardPiece(1))
     assert False is connect(board_kernel, BoardPiece(2))
@@ -235,3 +235,9 @@ def test_opponent():
 def test_available_moves():
     pass
     from agents.common import available_moves
+
+def test_mcts_passing_save_state():
+    from main import human_vs_agent
+    from agents.agent_mcts.mcts import generate_move_mcts
+    from agents.agent_random.random import generate_move_random
+    human_vs_agent(generate_move_mcts, generate_move_random)
