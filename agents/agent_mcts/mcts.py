@@ -221,9 +221,9 @@ def generate_move_mcts(
     """
     """
     if np.count_nonzero(board) in range(6):
-        nr_of_loops = 1500
+        nr_of_loops = 2000
     else:
-        nr_of_loops = 900
+        nr_of_loops = 1500
 
     # The MCTS usage.
     for loop in range(nr_of_loops):
