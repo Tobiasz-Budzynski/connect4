@@ -1,10 +1,7 @@
 import numpy as np
 from enum import Enum
-from typing import Optional, Callable, Tuple, TYPE_CHECKING
-
-# side note: occasional problem with using the fftconvolve, check convolve2D
-#if TYPE_CHECKING:
-from scipy.signal import fftconvolve, convolve2d
+from typing import Optional, Callable, Tuple
+from scipy.signal import convolve2d
 
 
 class SavedState:
@@ -155,7 +152,6 @@ def connect(board: np.ndarray, player: BoardPiece, n=4) -> bool:
     return False
 
 
-
 def check_end_state(
         board: np.ndarray, player: BoardPiece,
         last_action: Optional[PlayerAction] = None
@@ -206,7 +202,7 @@ def available_moves(board: np.ndarray) -> np.ndarray:
 
 def available_moves_another(board: np.ndarray) -> np.ndarray:
     # maydo: refactor, that the functions returns a set or a vector of seven booleans.
-    # note: this one causes Type error, when calculating set of this return... Why?
+    # note: this one worked causes Type error, when calculating set of this return... Why?
     return np.array(np.argwhere(np.any(board == 0, axis=0)), dtype=PlayerAction)
 
 
