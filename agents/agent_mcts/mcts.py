@@ -34,7 +34,7 @@ class Node:
 class MCTS:
     # class for MCTS, storing root etc.
     """
-    Selection, expansion, playout, backpropagation.
+    Selection, expansion, playout, backpr`opagation.
     We define methods for Monte Carlo Tree Search.
     They should be called in this order in a loop,
     giving a best evaluated move - ratio wins/trials starting from the root.
@@ -95,10 +95,10 @@ class MCTS:
         while check_end_state(board_new, opponent(player_new)) == GameState.STILL_PLAYING:
             action_new = generate_move_random(board_new, player_new, None)
 
-            # It at least one is unexpanded, we can start playout.
+            # If at least one is unexpanded, we can start playout.
             # Handling the case with mixture of expanded and unexpanded moves:
             if action_new in node.children:
-                node = node.children[str(action_new)]
+                node = node.children[action_new]
                 node._count = 0
 
             board_new = apply_player_action(board_new, action_new, player_new)
@@ -175,11 +175,6 @@ class MCTS:
             return parent.children[np.random.choice(list(map(int, parent.children.keys())))]
         elif parent.trials != 0:
             ucb_vector = wins*trial_inverse + np.sqrt(np.log(parent.trials)*trial_inverse)*c
-        """
-        Optional code:
-        if len(set(ucb_vector)) == 1:  # move more often in the middle, if the values are the same
-           ucb = np.random.randint(3, 6)
-        """
         ucb = np.argmax(ucb_vector)
 
         return parent.children[ucb]
@@ -202,36 +197,55 @@ class MCTS:
 
 
 def generate_move_mcts(
-        board: np.ndarray, player: BoardPiece, saved_state_tree: Optional[SavedState]
+        board: np.ndarray, player: BoardPiece, saved_state: Optional[SavedState]
 ) -> Tuple[PlayerAction, Optional[SavedState]]:
     """
     After playout if node._count is still 0, then there was a win or draw in the expand call.
+
+        maydo: Optimize nr of loops as a function of the current nr of pieces on board.
+        So it passes a test of blocking the opponent in next move (avoiding opponent win in the next move).
+
     """
 
-    #if saved_state_tree is None:
-    root = Node(board, player)
-    t = MCTS(root)  # stands for a tree
-    #else:
-    #    last_action = np.argwhere(board != saved_state_tree.board)[:, 0]
-    #    t = MCTS(saved_state_tree.children[int(last_action)])
+    # Unpack saved state.
+    if saved_state is None:
+        root = Node(board, player)
+        t = MCTS(root)  # stands for a tree
+        saved_state = SavedStateMCTS(t)
+    else:
+        t = saved_state.tree
+        index_last_action = np.argwhere(board != t.root.board)
+        t.root = t.root.children[int(index_last_action[:,1])]
 
-    for loop in range(200):
+    # With 3k loops it's really good, but slow.
+    """
+    """
+    if np.count_nonzero(board) in range(6):
+        nr_of_loops = 1500
+    else:
+        nr_of_loops = 900
+
+    # The MCTS usage.
+    for loop in range(nr_of_loops):
         t.backprop(*t.playout(t.expand(t.select())))
-    child = t._select_next_child(root)
-    for key, value in root.children.items():
-     if value == child:
-         action = key
-    return action, None
+    child = t._select_next_child(t.root)
 
+    # From the node obtain the action.
+    for key, value in t.root.children.items():
+        if value == child:
+            action = key
+            break
 
-    # for
-    #    for trial in range(SavedStateMCTS.trials_number.value):
+    # Update situation saved.
+    t.root = t.root.children[action]
+    saved_state.tree = t
+
+    return action, saved_state
 
 
 class SavedStateMCTS(SavedState):
     def __init__(self, tree):
         """
-
         :rtype: object
         """
         self.tree = tree

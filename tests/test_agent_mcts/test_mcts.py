@@ -107,11 +107,11 @@ def test_tree_backprop_first_node_and_stats():
 
         assert child_frozen.trials +1 == child.trials
         if last_player == child.player and state == GameState.IS_WIN:
-            assert child.wins == 0
-            stats[0] += 1
-        elif last_player == opponent(child.player) and state == GameState.IS_WIN:
             assert child.wins == 1
             assert child.wins == child_frozen.wins +1
+            stats[0] += 1
+        elif last_player == opponent(child.player) and state == GameState.IS_WIN:
+            assert child.wins == 0
             stats[1] += 1
         elif state == GameState.IS_DRAW:
             stats[2] += 1
@@ -155,7 +155,7 @@ def test_backprop_trials():
             assert leaf_old.trials +count == leaf.trials
 
 
-def test_backprop_trials():
+def test_backprop_trials_another():
     # maydo: (should do) test deeper than one parent of a leaf
     for state in GameState:
         for last_player in [1, 2]:
@@ -165,10 +165,10 @@ def test_backprop_trials():
             prep["tree"].backprop(leaf, state, last_player)
 
             if state == GameState.IS_WIN and leaf.parent != "root":
-                if last_player == leaf.player:
+                if last_player == opponent(leaf.player):
                     assert leaf.parent.wins == (leaf_old.parent.wins +1)
                     assert leaf.wins == leaf_old.wins
-                if last_player == opponent(leaf.player):
+                if last_player == leaf.player:
                     assert leaf.parent.wins == leaf_old.parent.wins
                     assert leaf.wins == (leaf_old.wins +1)
 
@@ -217,6 +217,7 @@ def test_loop_of_MCTS_methods():
     last_leaf, state, last_player = tree.playout(new_leaf)
     tree.backprop(last_leaf, state, last_player)
 
+
 def test_loop_of_MCTS_methods_abrev():
 
     root = Node(*prepare_board_and_player_for_testing())
@@ -231,7 +232,6 @@ def test_loop_of_MCTS_methods_abrev():
         assert child.unexpanded == set() or available_moves(child.board) == []
 
     print(t.root)
-    # todo: test it against random : ]
 
 
 def test_generate_move_mcts_avoid_immediate_loss():
@@ -240,18 +240,18 @@ def test_generate_move_mcts_avoid_immediate_loss():
         board[0, 2:5] = BoardPiece(1)
         board[0, 0:2] = BoardPiece(2)
 
-        # cProfile.runctx('g(x,t,s)', {'g': generate_move_mcts, 'x': board, 't': BoardPiece(2), 's': None}, {})
+        cProfile.runctx('g(x,t,s)', {'g': generate_move_mcts, 'x': board, 't': BoardPiece(2), 's': None}, {})
         move, saved_state = generate_move_mcts(board, BoardPiece(2), None)
         assert move == 5
-
+        apply_player_action(board, move, BoardPiece(2))
         print(board)
 
 
+# maydo: the below.
 def test_generate_move_mcts_vs_random():
     """
 
     """
-
     # assert  # ...that the child denominators sum up to denominator
     # and child numerators sum up to the opposite
     # of it's parents nominator.
