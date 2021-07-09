@@ -234,6 +234,25 @@ def test_loop_of_MCTS_methods_abrev():
     print(t.root)
 
 
+def test_generate_move_mcts():
+    """
+     Assert ...that the children trials sum up to parents trials
+     and child wins sum up to the minus opposite
+     of it's parents wins modulo trials.
+     """
+    root = Node(*prepare_board_and_player_for_testing())
+    action, saved_state = generate_move_mcts(root.board, root.player, None)
+    assert isinstance(action, PlayerAction)
+
+    new_root = saved_state.tree.root
+    trials, wins = 0, 0
+    for child in new_root.children.values():
+        trials += child.trials
+        wins += child.wins
+    assert wins == new_root.trials - new_root.wins
+    assert trials == new_root.trials  # todo: find, where the difference of one arises.
+
+
 def test_generate_move_mcts_avoid_immediate_loss():
     for loop in range(1):
         board = initialize_game_state()
@@ -252,14 +271,3 @@ def test_generate_move_mcts_vs_random():
     """
 
     """
-    # assert  # ...that the child denominators sum up to denominator
-    # and child numerators sum up to the opposite
-    # of it's parents nominator.
-
-
-
-
-
-
-
-

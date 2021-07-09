@@ -111,8 +111,6 @@ class MCTS:
 
     def backprop(self, node: Node, game_state: GameState, last_player: BoardPiece):
         """
-        Todo: Evaluate UCB for children, after updating the parent (or adding 1 in equation before the update).
-
         Backprop increases the trials count along the path to the tree's root
         and accordingly to the end state - the wins of every second node along the path,
         (without changing wins, when it is a draw).
@@ -139,13 +137,13 @@ class MCTS:
         UCB - upper confidence bound - the bigger, the better for the node.
         It's values will be used in the select method.
         When choosing from a parent node, it's child will have ucb stored.
-        .
-        At each node we need:
+
+        At each node we need and compute:
         w_i: wins at that node.
         s_i: (simulations) trials made from this node.
         s_p: parents trials to preserve power law across the tree, balancing exploration / exploitation.
         c : exploration parameter, np.sqrt(2) (or use rough approximation, for example 1.42)
-        "argument_max(w_i/s_i + c*np.sqrt(np.ln(s_p)/s_i))"
+        "argument_max(w_i/s_i + c*np.sqrt(np.ln(s_p)/s_i) | i goes through siblings)"
 
         :argument: node
         :return: child with the highest heuristic value.
@@ -154,13 +152,15 @@ class MCTS:
         Maydo: move the part below to tests.
         Note for the implementing me.
             Checking the boarder cases:
-            - when the leaf has empty unexpanded set? A: when the node is fully expanded or when the node is at the Draw.
+            - when the leaf has empty unexpanded set? A: when the node is fully expanded or when the node is at the Draw (and the tree was freshly started).
             - leaf with a full board or almost full - should be checked in the expand method,
             - when trials are zero,
             - when wins are zero,
             - when tree contains only root.
         maydo: Calculate statistics of each column-action (or each pair (action, nr count of move),
          (Confidence Interval?).
+
+        Todo: Evaluate UCB for children, after updating the parent (or adding 1 in equation before the update).
         """
         # Prepare wins, trials data (parent trials are prepared).
         wins = np.zeros(7)
@@ -190,7 +190,7 @@ class MCTS:
         """
 
         the_child = self.root
-        while the_child.unexpanded == set() and len(available_moves(the_child.board)) != 0:
+        while the_child.unexpanded == set() and not len(available_moves(the_child.board)) == 0:
 
             the_child = self._select_next_child(the_child)
         return the_child
@@ -200,11 +200,17 @@ def generate_move_mcts(
         board: np.ndarray, player: BoardPiece, saved_state: Optional[SavedState]
 ) -> Tuple[PlayerAction, Optional[SavedState]]:
     """
+    The function unpack the tree from saved state.
+    Run consecutively the methods of Monte Carlo Tree Search, to find the next action.
     After playout if node._count is still 0, then there was a win or draw in the expand call.
+    :board: the games board at present.
+    :player: the board piece to make a move.
+    :saved_state: the instance of the saved state (might be None at first).
 
-        maydo: Optimize nr of loops as a function of the current nr of pieces on board.
-        So it passes a test of blocking the opponent in next move (avoiding opponent win in the next move).
+    :return: the action and the instance of the saved state, which stores the tree.
 
+    maydo: Optimize nr of loops as a function of the current nr of pieces on board,
+        so it passes a test of blocking the opponent in next move (avoiding opponent win in the next move).
     """
 
     # Unpack saved state.
@@ -218,8 +224,6 @@ def generate_move_mcts(
         t.root = t.root.children[int(index_last_action[:,1])]
 
     # With 3k loops it's really good, but slow.
-    """
-    """
     if np.count_nonzero(board) in range(6):
         nr_of_loops = 2000
     else:
